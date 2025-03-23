@@ -393,6 +393,9 @@ void CNPC_Alyx::Activate( void )
 	// Avoids problems with players saving the game in places where she dies immediately afterwards.
 	m_iHealth = 80;
 
+	//[yangfan]可能由于存档出错的原因，Alyx的交互始终处于被禁止状态，在Activate函数内我们强行开启交互。
+	m_bInteractionAllowed = true;
+
 	BaseClass::Activate();
 
 	// Alyx always assumes she has said hello to Gordon!

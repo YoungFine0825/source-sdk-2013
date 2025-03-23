@@ -51,17 +51,17 @@ static const char *s_pWaitForUpgradeContext = "WaitForUpgrade";
 ConVar	g_debug_physcannon( "g_debug_physcannon", "0" );
 
 ConVar physcannon_minforce( "physcannon_minforce", "700" );
-ConVar physcannon_maxforce( "physcannon_maxforce", "1500" );
-ConVar physcannon_maxmass( "physcannon_maxmass", "250" );
-ConVar physcannon_tracelength( "physcannon_tracelength", "250" );
-ConVar physcannon_mega_tracelength( "physcannon_mega_tracelength", "850" );
+ConVar physcannon_maxforce( "physcannon_maxforce", "11500" );//修改物理枪威力
+ConVar physcannon_maxmass( "physcannon_maxmass", "2500" );//
+ConVar physcannon_tracelength( "physcannon_tracelength", "250000" );//修改物理枪射线检测距离
+ConVar physcannon_mega_tracelength( "physcannon_mega_tracelength", "250000" );//
 ConVar physcannon_chargetime("physcannon_chargetime", "2" );
 ConVar physcannon_pullforce( "physcannon_pullforce", "4000" );
 ConVar physcannon_mega_pullforce( "physcannon_mega_pullforce", "8000" );
 ConVar physcannon_cone( "physcannon_cone", "0.97" );
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997" );
 ConVar physcannon_punt_cone( "physcannon_punt_cone", "0.997" );
-ConVar player_throwforce( "player_throwforce", "1000" );
+ConVar player_throwforce( "player_throwforce", "100000" );//
 ConVar physcannon_dmg_glass( "physcannon_dmg_glass", "15" );
 ConVar physcannon_right_turrets( "physcannon_right_turrets", "0" );
 
@@ -85,6 +85,8 @@ extern ConVar hl2_walkspeed;
 #define	MEGACANNON_MODEL "models/weapons/v_superphyscannon.mdl"
 #define	MEGACANNON_SKIN	1
 
+//允许射线检测穿过WINDOW,GRATE
+#define PHYSCANNON_SHOT_MASK CONTENTS_SOLID|CONTENTS_MOVEABLE|CONTENTS_MONSTER|CONTENTS_HITBOX|CONTENTS_DEBRIS
 // -------------------------------------------------------------------------
 //  Physcannon trace filter to handle special cases
 // -------------------------------------------------------------------------
@@ -228,20 +230,22 @@ void UTIL_PhyscannonTraceLine( const Vector &vecAbsStart, const Vector &vecAbsEn
 
 	// First, trace against entities
 	CTraceFilterPhyscannon filter( pTraceOwner, COLLISION_GROUP_NONE );
-	UTIL_TraceLine( vecAbsStart, vecAbsEnd, (MASK_SHOT|CONTENTS_GRATE), &filter, pTrace );
+
+	UTIL_TraceLine(vecAbsStart, vecAbsEnd, PHYSCANNON_SHOT_MASK, &filter, pTrace);
 
 	// If we've hit something, test again to make sure no brushes block us
 	if ( pTrace->m_pEnt != NULL )
 	{
-		trace_t testTrace;
-		CTraceFilterOnlyBrushes brushFilter( COLLISION_GROUP_NONE );
-		UTIL_TraceLine( pTrace->startpos, pTrace->endpos, MASK_SHOT, &brushFilter, &testTrace );
+		//不做遮挡检查
+		//trace_t testTrace;
+		//CTraceFilterOnlyBrushes brushFilter( COLLISION_GROUP_NONE );
+		//UTIL_TraceLine(pTrace->startpos, pTrace->endpos, PHYSCANNON_SHOT_MASK, &brushFilter, &testTrace);
 
-		// If we hit a brush, replace the trace with that result
-		if ( testTrace.fraction < 1.0f || testTrace.startsolid || testTrace.allsolid )
-		{
-			*pTrace = testTrace;
-		}
+		//// If we hit a brush, replace the trace with that result
+		//if ( testTrace.fraction < 1.0f || testTrace.startsolid || testTrace.allsolid )
+		//{
+		//	*pTrace = testTrace;
+		//}
 	}
 }
 
@@ -254,26 +258,27 @@ void UTIL_PhyscannonTraceHull( const Vector &vecAbsStart, const Vector &vecAbsEn
 	if ( hl2_episodic.GetBool() == false )
 	{
 		CTraceFilterNoOwnerTest filter( pTraceOwner, COLLISION_GROUP_NONE );
-		UTIL_TraceHull( vecAbsStart, vecAbsEnd, vecAbsMins, vecAbsMaxs, (MASK_SHOT|CONTENTS_GRATE), &filter, pTrace );
+		UTIL_TraceHull( vecAbsStart, vecAbsEnd, vecAbsMins, vecAbsMaxs, PHYSCANNON_SHOT_MASK, &filter, pTrace );
 		return;
 	}
 
 	// First, trace against entities
 	CTraceFilterPhyscannon filter( pTraceOwner, COLLISION_GROUP_NONE );
-	UTIL_TraceHull( vecAbsStart, vecAbsEnd, vecAbsMins, vecAbsMaxs, (MASK_SHOT|CONTENTS_GRATE), &filter, pTrace );
+	UTIL_TraceHull(vecAbsStart, vecAbsEnd, vecAbsMins, vecAbsMaxs, PHYSCANNON_SHOT_MASK, &filter, pTrace);
 
 	// If we've hit something, test again to make sure no brushes block us
 	if ( pTrace->m_pEnt != NULL )
 	{
-		trace_t testTrace;
-		CTraceFilterOnlyBrushes brushFilter( COLLISION_GROUP_NONE );
-		UTIL_TraceHull( pTrace->startpos, pTrace->endpos, vecAbsMins, vecAbsMaxs, MASK_SHOT, &brushFilter, &testTrace );
+		//不做遮挡检查
+		//trace_t testTrace;
+		//CTraceFilterOnlyBrushes brushFilter( COLLISION_GROUP_NONE );
+		//UTIL_TraceHull( pTrace->startpos, pTrace->endpos, vecAbsMins, vecAbsMaxs, MASK_SHOT, &brushFilter, &testTrace );
 
-		// If we hit a brush, replace the trace with that result
-		if ( testTrace.fraction < 1.0f || testTrace.startsolid || testTrace.allsolid )
-		{
-			*pTrace = testTrace;
-		}
+		//// If we hit a brush, replace the trace with that result
+		//if ( testTrace.fraction < 1.0f || testTrace.startsolid || testTrace.allsolid )
+		//{
+		//	*pTrace = testTrace;
+		//}
 	}
 }
 
@@ -2219,10 +2224,16 @@ void CWeaponPhysCannon::PrimaryAttack( void )
 		if( GetOwner()->IsPlayer() && !IsMegaPhysCannon() )
 		{
 			// Don't let the player zap any NPC's except regular antlions and headcrabs.
-			if( pEntity->IsNPC() && pEntity->Classify() != CLASS_HEADCRAB && !FClassnameIs(pEntity, "npc_antlion") )
+			//if( pEntity->IsNPC() && pEntity->Classify() != CLASS_HEADCRAB && !FClassnameIs(pEntity, "npc_antlion") )
+			//{
+			//	DryFire();
+			//	return;
+			//}
+			//原先只允许攻击猎头蟹和蚁狮，现在我们改为全都可以攻击
+			if( pEntity->IsNPC())
 			{
-				DryFire();
-				return;
+				CTakeDamageInfo info(pOwner, pOwner, 10000.0f, DMG_PHYSGUN);
+				pEntity->TakeDamage(info);
 			}
 		}
 
@@ -3377,7 +3388,7 @@ void CWeaponPhysCannon::LaunchObject( const Vector &vecDir, float flForce )
 		int		iLength;
 		int		i;
 
-		UTIL_TraceLine( vecStart, vecStart + vecDir * flForce, MASK_SHOT, pObject, COLLISION_GROUP_NONE, &tr );
+		UTIL_TraceLine(vecStart, vecStart + vecDir * flForce, PHYSCANNON_SHOT_MASK, pObject, COLLISION_GROUP_NONE, &tr);
 		iLength = ( tr.startpos - tr.endpos ).Length();
 		vecSpot = vecStart + vecDir * PHYSCANNON_DANGER_SOUND_RADIUS;
 

@@ -393,6 +393,14 @@ void CRagdollProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 //-----------------------------------------------------------------------------
 void CRagdollProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason )
 {
+	//某些时候使用物理枪频繁的抓取Ragdoll然后立刻发射出去，会出现CBaseEntity::VPhysicsSwapObject传入了一个空PhysicsObject,
+	//导致VPhysicsGetObject()会返回为null的情况，需要做一个检查。
+	if (VPhysicsGetObject() == nullptr)
+	{
+		Msg("ERROR: RagdollProp未包含PhysicsObject!!!\n");
+		return;
+	}
+
 	CDefaultPlayerPickupVPhysics::OnPhysGunDrop( pPhysGunUser, Reason );
 	m_hPhysicsAttacker = pPhysGunUser;
 	m_flLastPhysicsInfluenceTime = gpGlobals->curtime;

@@ -159,6 +159,7 @@ public:
 		{
 			Msg( "***\n");
 			Msg( "ERROR: Loaded save game with no node graph. Load map and build node graph first!\n");
+			Msg(" ERROR: 无法加载地图中的Node Graph!g_pBigAINet节点数量为空\n");
 			Msg( "***\n");
 			CAI_BaseNPC::m_nDebugBits |= bits_debugDisableAI;
 			g_pAINetworkManager->MarkDontSaveGraph();
